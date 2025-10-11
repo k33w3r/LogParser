@@ -1,7 +1,6 @@
 package one.frei.mapper;
 
 import jakarta.annotation.Nullable;
-import one.frei.cli.LogFileReaderHelper;
 import one.frei.domain.enums.ActionType;
 import one.frei.domain.model.LogEntry;
 import org.slf4j.Logger;
@@ -11,8 +10,11 @@ import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 
 public class LogEntryMapper {
-    private static final Logger LOGGER = LoggerFactory.getLogger(LogFileReaderHelper.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LogEntryMapper.class);
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
+
+    private LogEntryMapper() {
+    }
 
     @Nullable
     public static LogEntry mapstringToLogEntry(String line) {

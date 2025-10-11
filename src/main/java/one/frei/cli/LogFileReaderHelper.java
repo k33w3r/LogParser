@@ -12,7 +12,7 @@ import java.io.IOException;
 @Component
 public class LogFileReaderHelper {
 
-    Logger LOGGER = LoggerFactory.getLogger(LogFileReaderHelper.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LogFileReaderHelper.class);
 
     public void readLogFile(String logFile) {
         try (BufferedReader reader = new BufferedReader(new FileReader(logFile))) {
