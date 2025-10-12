@@ -75,6 +75,14 @@ public class LogFileReaderHelper {
         incrementMetaData(logEntry, metaData);
     }
 
+    /*
+     * P.S. Although the spec only said to check for the following three scenarios:
+     * 1. Count LOGINSUCCESS and LOGINFAILURE per user.
+     * 2. Identify top 3 users with the most FILEUPLOAD events.
+     * 3. Detect “suspicious” activity: >3 LOGINFAILUREs from the same IP within 5 minutes.
+     *
+     * I wanted to use all the data presented and might remove this at a later stage.
+     */
     private void incrementMetaData (LogEntry logEntry, LogEntryMetaData metaData) {
         switch (logEntry.getActionType()) {
             case LOGIN_SUCCESS -> metaData.setSuccessfulLoginCount(metaData.getSuccessfulLoginCount() + 1);
