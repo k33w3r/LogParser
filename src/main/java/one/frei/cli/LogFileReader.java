@@ -15,6 +15,6 @@ public class LogFileReader implements CommandLineRunner {
     @Override
     public void run(String... args) {
         String logFile = "/home/keenan/Downloads/system_logs.log";
-        logFileReaderHelper.readLogFile(logFile);
+        logFileReaderHelper.processLogEntry(logFile);
     }
 }
