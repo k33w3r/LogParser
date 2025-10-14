@@ -26,10 +26,6 @@ public class LogEntryMapper {
             return null;
         }
 
-        String timestampString = parts[0].trim();
-        String user = parts[1].trim();
-        String actionStr = parts[2].trim();
-
         LogEntry logEntry = new LogEntry();
         if (parts.length > 3) {
             String info = parts[3].trim();
@@ -42,8 +38,13 @@ public class LogEntryMapper {
             }
         }
 
+        String timestampString = parts[0].trim();
         logEntry.setTimestamp(OffsetDateTime.parse(timestampString, FORMATTER));
+
+        String user = parts[1].trim();
         logEntry.setUser(user);
+
+        String actionStr = parts[2].trim();
         logEntry.setActionType(ActionType.fromValue(actionStr));
 
         LOGGER.info(logEntry.toString());
