@@ -6,4 +6,3 @@ Log File Analyser parses system logs, tracks user activity, detects suspicious l
  - add documentation to methods
  - create rest endpoint
  - add swagger
- - Detect suspicious activity: >3 login failures from the same IP within 5 minutes.

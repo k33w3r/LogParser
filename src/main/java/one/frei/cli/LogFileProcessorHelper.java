@@ -29,7 +29,6 @@ public class LogFileProcessorHelper {
         Map<String, LogEntryContainer> logEntryContainerMap = createLogEntryContainerMap(logEntries);
         List<LogEntryContainer> topUsersByFileUploads = getTopUsersByFileUploads(logEntryContainerMap, 3);
         List<LogEntry> suspiciousLogEntries = detectSuspiciousLogEntries(logEntryContainerMap);
-        LOGGER.info("done");
     }
 
     private List<LogEntry> readLogFile(String logFile) {
