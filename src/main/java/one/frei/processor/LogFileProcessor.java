@@ -8,8 +8,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -25,46 +26,26 @@ public class LogFileProcessor {
     private static final Logger LOGGER = LoggerFactory.getLogger(LogFileProcessor.class);
 
     /**
-     * High-level entry point to process a log file.
-     * <p>
-     * This function reads the file, builds container mappings,
-     * calculates top uploaders, and detects suspicious logins.
-     *
-     * @param logFile absolute or relative path to the log file
-     * @deprecated This method will be removed soon. Use
-     *             {@link #createLogEntryContainerMap(List)},
-     *             {@link #getTopUsersByFileUploads(Map, int)}  and
-     *             {@link #detectSuspiciousLogEntries(Map)}  directly instead.
-     */
-    @Deprecated
-    public void processLogEntry(String logFile) {
-        List<LogEntry> logEntries = readLogFile(logFile);
-        Map<String, LogEntryContainer> logEntryContainerMap = createLogEntryContainerMap(logEntries);
-        List<LogEntryContainer> topUsersByFileUploads = getTopUsersByFileUploads(logEntryContainerMap, 3);
-        List<LogEntry> suspiciousLogEntries = detectSuspiciousLogEntries(logEntryContainerMap);
-    }
-
-    /**
      * Reads a system log file and maps each valid line to a {@link LogEntry}.
      * Lines containing non-ASCII characters are ignored.
      *
      * @param logFile path to the log file
      * @return a list of parsed {@link LogEntry} objects
      */
-    public List<LogEntry> readLogFile(String logFile) {
+    public List<LogEntry> readLogFile(InputStream logFile) {
         List<LogEntry> logEntries = new ArrayList<>();
-        try (BufferedReader reader = new BufferedReader(new FileReader(logFile))) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(logFile))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 if (hasNonAsciiCharacters(line)) {
-                    LOGGER.warn("Non asci detected, ignoring content: {} ", line);
+                    LOGGER.warn("Non ascii detected, ignoring content: {} ", line);
                 } else {
                     LogEntry logEntry = LogEntryMapper.mapstringToLogEntry(line);
                     logEntries.add(logEntry);
                 }
             }
         } catch (IOException e) {
-            LOGGER.error("Failed to read file: {}", logFile, e);
+            LOGGER.error("Failed to read log stream", e);
         }
         return logEntries;
     }

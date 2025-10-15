@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -28,10 +29,10 @@ public class LogAnalysisController {
     private final List<LogEntry> logEntries;
 
     @Autowired
-    public LogAnalysisController(LogFileProcessor logFileProcessor) throws IOException {
+    public LogAnalysisController(LogFileProcessor logFileProcessor) {
         this.logFileProcessor = logFileProcessor;
-        String logFilePath = new ClassPathResource("system_logs.log").getFile().getAbsolutePath();
-        logEntries = logFileProcessor.readLogFile(logFilePath);
+        InputStream logStream = getClass().getClassLoader().getResourceAsStream("system_logs.log");
+        logEntries = logFileProcessor.readLogFile(logStream);
 
     }
 
