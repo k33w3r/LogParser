@@ -14,7 +14,11 @@ public class LogFileProcessor implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        String logFile = "/home/keenan/Downloads/system_logs.log";
-        logFileProcessorHelper.processLogEntry(logFile);
+        var resource = getClass().getClassLoader().getResource("system_logs.log");
+        if (resource == null) {
+            throw new IllegalStateException("Unable to find file: system_logs.log");
+        }
+        String logFilePath = resource.getFile();
+        logFileProcessorHelper.processLogEntry(logFilePath);
     }
 }
