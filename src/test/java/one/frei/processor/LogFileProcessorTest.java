@@ -1,4 +1,4 @@
-package one.frei.cli;
+package one.frei.processor;
 
 import one.frei.domain.enums.ActionType;
 import one.frei.domain.model.LogEntry;
@@ -15,14 +15,14 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class LogFileProcessorHelperTest {
+public class LogFileProcessorTest {
 
 
-    private LogFileProcessorHelper processorHelper;
+    private LogFileProcessor processorHelper;
 
     @BeforeEach
     void setUp() {
-        processorHelper = new LogFileProcessorHelper();
+        processorHelper = new LogFileProcessor();
     }
 
     @Test
