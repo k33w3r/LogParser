@@ -20,8 +20,6 @@ public class LogEntryMapper {
     public static LogEntry mapstringToLogEntry(String line) {
         String[] parts = line.split("\\|");
         if (parts.length < 3) {
-            // TODO: add actual handling logic so I can keep track of lines that could not be mapped
-            //  and if they need to be logged as suspicious
             LOGGER.warn("Invalid log entry line: {}", line);
             return null;
         }

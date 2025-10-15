@@ -31,7 +31,7 @@ public class LogFileProcessorHelper {
         List<LogEntry> suspiciousLogEntries = detectSuspiciousLogEntries(logEntryContainerMap);
     }
 
-    private List<LogEntry> readLogFile(String logFile) {
+    protected List<LogEntry> readLogFile(String logFile) {
         List<LogEntry> logEntries = new ArrayList<>();
         try (BufferedReader reader = new BufferedReader(new FileReader(logFile))) {
             String line;
@@ -49,7 +49,7 @@ public class LogFileProcessorHelper {
         return logEntries;
     }
 
-    private Map<String, LogEntryContainer> createLogEntryContainerMap(List<LogEntry> logEntries) {
+    protected Map<String, LogEntryContainer> createLogEntryContainerMap(List<LogEntry> logEntries) {
         Map<String, LogEntryContainer> logEntryContainerMap = new HashMap<>();
 
         for (LogEntry logEntry : logEntries) {
@@ -70,14 +70,14 @@ public class LogFileProcessorHelper {
         return logEntryContainerMap;
     }
 
-    private LogEntryContainer populateLogEntryContainer(LogEntry logEntry) {
+    protected LogEntryContainer populateLogEntryContainer(LogEntry logEntry) {
         LogEntryContainer logEntryContainer = new LogEntryContainer();
         logEntryContainer.setUser(logEntry.getUser());
         addLogEntry(logEntry, logEntryContainer);
         return logEntryContainer;
     }
 
-    private void populateLogEntryContainer(LogEntry logEntry, LogEntryContainer logEntryContainer) {
+    protected void populateLogEntryContainer(LogEntry logEntry, LogEntryContainer logEntryContainer) {
         addLogEntry(logEntry, logEntryContainer);
     }
 
@@ -89,7 +89,7 @@ public class LogFileProcessorHelper {
      *
      * I wanted to use all the data presented and might remove this at a later stage.
      */
-    private void addLogEntry(LogEntry logEntry, LogEntryContainer logEntryContainer) {
+    protected void addLogEntry(LogEntry logEntry, LogEntryContainer logEntryContainer) {
         switch (logEntry.getActionType()) {
             case LOGIN_SUCCESS -> logEntryContainer.getSuccessfulLogins().add(logEntry);
             case LOGIN_FAILURE -> logEntryContainer.getFailedLogins().add(logEntry);
@@ -103,14 +103,14 @@ public class LogFileProcessorHelper {
     /**
      * Returns true if the input contains at least one non-printable ASCII character.
      */
-    private boolean hasNonAsciiCharacters(String input) {
+    protected boolean hasNonAsciiCharacters(String input) {
         if (input == null || input.isEmpty()) {
             return false;
         }
         return input.chars().anyMatch(c -> c < 32 || c > 127);
     }
 
-    private List<LogEntryContainer> getTopUsersByFileUploads(Map<String, LogEntryContainer> logEntryContainerMap, int resultsAmount) {
+    protected List<LogEntryContainer> getTopUsersByFileUploads(Map<String, LogEntryContainer> logEntryContainerMap, int resultsAmount) {
         return logEntryContainerMap.entrySet().stream()
                 .sorted((a, b) -> Integer.compare(
                         b.getValue().getFileUploads().size(),
@@ -120,7 +120,7 @@ public class LogFileProcessorHelper {
                 .collect(Collectors.toList());
     }
 
-    private List<LogEntry> detectSuspiciousLogEntries(Map<String, LogEntryContainer> containers) {
+    protected List<LogEntry> detectSuspiciousLogEntries(Map<String, LogEntryContainer> containers) {
         Map<String, List<LogEntry>> ipFailures = new HashMap<>();
 
         for (LogEntryContainer container : containers.values()) {
