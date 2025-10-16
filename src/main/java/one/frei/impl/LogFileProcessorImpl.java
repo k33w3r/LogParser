@@ -1,11 +1,12 @@
-package one.frei.processor;
+package one.frei.impl;
 
 import one.frei.domain.model.LogEntry;
 import one.frei.domain.model.LogEntryContainer;
 import one.frei.mapper.LogEntryMapper;
+import one.frei.service.LogFileProcessorService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -20,10 +21,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-@Component
-public class LogFileProcessor {
+@Service
+public class LogFileProcessorImpl implements LogFileProcessorService {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(LogFileProcessor.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LogFileProcessorImpl.class);
 
     /**
      * Reads a system log file and maps each valid line to a {@link LogEntry}.
@@ -80,6 +81,58 @@ public class LogFileProcessor {
     }
 
     /**
+     * Retrieves the top N users who have performed the most file uploads.
+     *
+     * @param logEntryContainerMap a map of user log containers
+     * @param resultsAmount        the number of top users to retrieve
+     * @return a list of top users sorted by descending upload count
+     */
+    public List<LogEntryContainer> getTopUsersByFileUploads(Map<String, LogEntryContainer> logEntryContainerMap, int resultsAmount) {
+        return logEntryContainerMap.entrySet().stream()
+                .sorted((a, b) -> Integer.compare(
+                        b.getValue().getFileUploads().size(),
+                        a.getValue().getFileUploads().size()))
+                .limit(resultsAmount)
+                .map(Map.Entry::getValue)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Detects suspicious login patterns by identifying IPs with three or more
+     * failed login attempts within a five-minute time window.
+     *
+     * @param containers collection of user log containers
+     * @return a list of suspicious {@link LogEntry} objects indicating risky login behavior
+     */
+    public List<LogEntry> detectSuspiciousLogEntries(Map<String, LogEntryContainer> containers) {
+        Map<String, List<LogEntry>> ipFailures = new HashMap<>();
+
+        for (LogEntryContainer container : containers.values()) {
+            for (LogEntry entry : container.getFailedLogins()) {
+                if (entry.getIpAddress() != null && entry.getTimestamp() != null) {
+                    ipFailures.computeIfAbsent(entry.getIpAddress(), ip -> new ArrayList<>()).add(entry);
+                }
+            }
+        }
+
+        List<LogEntry> suspiciousEntries = new ArrayList<>();
+        for (List<LogEntry> logEntries : ipFailures.values()) {
+            logEntries.sort(Comparator.comparing(LogEntry::getTimestamp));
+            for (int i = 0; i <= logEntries.size() - 3; i++) {
+                OffsetDateTime first = logEntries.get(i).getTimestamp();
+                OffsetDateTime third = logEntries.get(i + 2).getTimestamp();
+                if (Duration.between(first, third).toMinutes() <= 5) {
+                    suspiciousEntries.add(logEntries.get(i));
+                    suspiciousEntries.add(logEntries.get(i + 1));
+                    suspiciousEntries.add(logEntries.get(i + 2));
+                    break;
+                }
+            }
+        }
+        return suspiciousEntries;
+    }
+
+    /**
      * Creates a new {@link LogEntryContainer} for a given {@link LogEntry}
      * and initializes it with the entry’s data.
      *
@@ -132,57 +185,5 @@ public class LogFileProcessor {
             return false;
         }
         return input.chars().anyMatch(c -> c < 32 || c > 127);
-    }
-
-    /**
-     * Retrieves the top N users who have performed the most file uploads.
-     *
-     * @param logEntryContainerMap a map of user log containers
-     * @param resultsAmount        the number of top users to retrieve
-     * @return a list of top users sorted by descending upload count
-     */
-    public List<LogEntryContainer> getTopUsersByFileUploads(Map<String, LogEntryContainer> logEntryContainerMap, int resultsAmount) {
-        return logEntryContainerMap.entrySet().stream()
-                .sorted((a, b) -> Integer.compare(
-                        b.getValue().getFileUploads().size(),
-                        a.getValue().getFileUploads().size()))
-                .limit(resultsAmount)
-                .map(Map.Entry::getValue)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Detects suspicious login patterns by identifying IPs with three or more
-     * failed login attempts within a five-minute time window.
-     *
-     * @param containers collection of user log containers
-     * @return a list of suspicious {@link LogEntry} objects indicating risky login behavior
-     */
-    public List<LogEntry> detectSuspiciousLogEntries(Map<String, LogEntryContainer> containers) {
-        Map<String, List<LogEntry>> ipFailures = new HashMap<>();
-
-        for (LogEntryContainer container : containers.values()) {
-            for (LogEntry entry : container.getFailedLogins()) {
-                if (entry.getIpAddress() != null && entry.getTimestamp() != null) {
-                    ipFailures.computeIfAbsent(entry.getIpAddress(), ip -> new ArrayList<>()).add(entry);
-                }
-            }
-        }
-
-        List<LogEntry> suspiciousEntries = new ArrayList<>();
-        for (List<LogEntry> logEntries : ipFailures.values()) {
-            logEntries.sort(Comparator.comparing(LogEntry::getTimestamp));
-            for (int i = 0; i <= logEntries.size() - 3; i++) {
-                OffsetDateTime first = logEntries.get(i).getTimestamp();
-                OffsetDateTime third = logEntries.get(i + 2).getTimestamp();
-                if (Duration.between(first, third).toMinutes() <= 5) {
-                    suspiciousEntries.add(logEntries.get(i));
-                    suspiciousEntries.add(logEntries.get(i + 1));
-                    suspiciousEntries.add(logEntries.get(i + 2));
-                    break;
-                }
-            }
-        }
-        return suspiciousEntries;
     }
 }
