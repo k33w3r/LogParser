@@ -8,6 +8,9 @@ import one.frei.domain.model.dto.suspicious.AttemptInfo;
 import one.frei.domain.model.dto.suspicious.SuspiciousIpAttempts;
 import one.frei.domain.model.dto.upload.UserUploadSummary;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -49,6 +52,24 @@ public class LogAnalysisController {
                 .toList();
     }
 
+    @GetMapping("/login-summary/download")
+    public ResponseEntity<List<UserLoginSummary>> downloadUserLoginSummary() {
+        Map<String, LogEntryContainer> logEntryContainerMap = logFileProcessor.createLogEntryContainerMap(logEntries);
+        List<UserLoginSummary> result = logEntryContainerMap.values().stream()
+                .map(container -> new UserLoginSummary(
+                        container.getUser(),
+                        container.getSuccessfulLogins().size(),
+                        container.getFailedLogins().size()))
+                .sorted((a, b) -> Integer.compare(
+                        (b.getLoginSuccessCount() + b.getLoginFailureCount()),
+                        (a.getLoginSuccessCount() + a.getLoginFailureCount())))
+                .toList();
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=login-summary.json")
+                .body(result);
+    }
+
     @GetMapping("/top-file-uploads")
     public List<UserUploadSummary> getTopUsersByFileUploads(@RequestParam(defaultValue = "3") int count) {
         Map<String, LogEntryContainer> logEntryContainerMap = logFileProcessor.createLogEntryContainerMap(logEntries);
@@ -58,6 +79,22 @@ public class LogAnalysisController {
                 .map(container -> new UserUploadSummary(
                         container.getUser(),
                         container.getFileUploads())).toList();
+    }
+
+    @GetMapping("/top-file-uploads/download")
+    public ResponseEntity<List<UserUploadSummary>> downloadTopUsersByFileUploads(@RequestParam(defaultValue = "3") int count) {
+        Map<String, LogEntryContainer> logEntryContainerMap = logFileProcessor.createLogEntryContainerMap(logEntries);
+        List<LogEntryContainer> topUsers = logFileProcessor.getTopUsersByFileUploads(logEntryContainerMap, count);
+
+        List<UserUploadSummary> result = topUsers.stream()
+                .map(container -> new UserUploadSummary(
+                        container.getUser(),
+                        container.getFileUploads())).toList();
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=top-file-uploads.json")
+                .body(result);
     }
 
     @GetMapping("/suspicious")
@@ -81,5 +118,30 @@ public class LogAnalysisController {
                                 .toList()
                 ))
                 .toList();
+    }
+
+    @GetMapping("/suspicious/download")
+    public ResponseEntity<List<SuspiciousIpAttempts>> downloadSuspiciousLogEntriesGrouped() {
+        Map<String, LogEntryContainer> logEntryContainerMap = logFileProcessor.createLogEntryContainerMap(logEntries);
+        List<LogEntry> suspiciousRaw = logFileProcessor.detectSuspiciousLogEntries(logEntryContainerMap);
+        Map<String, List<LogEntry>> byIp = suspiciousRaw.stream()
+                .filter(entry -> entry.getIpAddress() != null)
+                .collect(Collectors.groupingBy(LogEntry::getIpAddress));
+        List<SuspiciousIpAttempts> result = byIp.entrySet().stream()
+                .map(e -> new SuspiciousIpAttempts(
+                        e.getKey(),
+                        e.getValue().stream()
+                                .map(entry -> new AttemptInfo(
+                                        entry.getTimestamp().toString(),
+                                        entry.getUser(),
+                                        entry.getActionType().name()))
+                                .toList()
+                ))
+                .toList();
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=suspicious.json")
+                .body(result);
     }
 }
