@@ -15,8 +15,6 @@
     <packaging>jar</packaging>
 
     <name>LogParser</name>
-<!--    TODO: update url once properly configured.-->
-    <url>http://maven.apache.org</url>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

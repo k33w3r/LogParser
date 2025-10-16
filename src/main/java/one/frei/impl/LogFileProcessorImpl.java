@@ -2,6 +2,9 @@ package one.frei.impl;
 
 import one.frei.domain.model.LogEntry;
 import one.frei.domain.model.LogEntryContainer;
+import one.frei.domain.model.vo.login.UserLoginSummary;
+import one.frei.domain.model.vo.suspicious.SuspiciousIpAttempt;
+import one.frei.domain.model.vo.upload.UserUploadSummary;
 import one.frei.mapper.LogEntryMapper;
 import one.frei.service.LogFileProcessorService;
 import org.slf4j.Logger;
@@ -25,6 +28,12 @@ import java.util.stream.Collectors;
 public class LogFileProcessorImpl implements LogFileProcessorService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LogFileProcessorImpl.class);
+    private final List<LogEntry> logEntries = new ArrayList<>();
+
+    public LogFileProcessorImpl() {
+        InputStream logStream = getClass().getClassLoader().getResourceAsStream("system_logs.log");
+        readLogFile(logStream);
+    }
 
     /**
      * Reads a system log file and maps each valid line to a {@link LogEntry}.
@@ -33,8 +42,7 @@ public class LogFileProcessorImpl implements LogFileProcessorService {
      * @param logFile path to the log file
      * @return a list of parsed {@link LogEntry} objects
      */
-    public List<LogEntry> readLogFile(InputStream logFile) {
-        List<LogEntry> logEntries = new ArrayList<>();
+    private void readLogFile(InputStream logFile) {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(logFile))) {
             String line;
             while ((line = reader.readLine()) != null) {
@@ -48,7 +56,6 @@ public class LogFileProcessorImpl implements LogFileProcessorService {
         } catch (IOException e) {
             LOGGER.error("Failed to read log stream", e);
         }
-        return logEntries;
     }
 
 
@@ -56,10 +63,9 @@ public class LogFileProcessorImpl implements LogFileProcessorService {
      * Builds a map of {@link LogEntryContainer} objects keyed by username.
      * Each container groups log entries belonging to a specific user.
      *
-     * @param logEntries list of parsed log entries
      * @return a map where keys are usernames and values are user-specific log containers
      */
-    public Map<String, LogEntryContainer> createLogEntryContainerMap(List<LogEntry> logEntries) {
+    public Map<String, LogEntryContainer> createLogEntryContainerMap() {
         Map<String, LogEntryContainer> logEntryContainerMap = new HashMap<>();
 
         for (LogEntry logEntry : logEntries) {
@@ -80,34 +86,46 @@ public class LogFileProcessorImpl implements LogFileProcessorService {
         return logEntryContainerMap;
     }
 
+    public List<UserLoginSummary> retrieveUserLoginSummaries() {
+        Map<String, LogEntryContainer> logEntryContainerMap = createLogEntryContainerMap();
+        List<UserLoginSummary> userLoginSummaries = LogEntryMapper.logEntryContainerMapToUserLoginSummaries(logEntryContainerMap);
+        userLoginSummaries.sort((a, b) -> Integer.compare(
+                (b.getLoginSuccessCount() + b.getLoginFailureCount()),
+                (a.getLoginSuccessCount() + a.getLoginFailureCount())
+        ));
+
+        return userLoginSummaries;
+    }
+
     /**
      * Retrieves the top N users who have performed the most file uploads.
      *
-     * @param logEntryContainerMap a map of user log containers
-     * @param resultsAmount        the number of top users to retrieve
+     * @param resultsAmount the number of top users to retrieve
      * @return a list of top users sorted by descending upload count
      */
-    public List<LogEntryContainer> getTopUsersByFileUploads(Map<String, LogEntryContainer> logEntryContainerMap, int resultsAmount) {
-        return logEntryContainerMap.entrySet().stream()
+    public List<UserUploadSummary> retrieveTopUsersByFileUploads(int resultsAmount) {
+        Map<String, LogEntryContainer> logEntryContainerMap = createLogEntryContainerMap();
+        List<UserUploadSummary> userUploadSummaries = LogEntryMapper.logEntryContainerMapToUserUploadSummaries(logEntryContainerMap);
+
+        return userUploadSummaries.stream()
                 .sorted((a, b) -> Integer.compare(
-                        b.getValue().getFileUploads().size(),
-                        a.getValue().getFileUploads().size()))
+                        b.getFileUploads().size(),
+                        a.getFileUploads().size()))
                 .limit(resultsAmount)
-                .map(Map.Entry::getValue)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
      * Detects suspicious login patterns by identifying IPs with three or more
      * failed login attempts within a five-minute time window.
      *
-     * @param containers collection of user log containers
      * @return a list of suspicious {@link LogEntry} objects indicating risky login behavior
      */
-    public List<LogEntry> detectSuspiciousLogEntries(Map<String, LogEntryContainer> containers) {
-        Map<String, List<LogEntry>> ipFailures = new HashMap<>();
+    public List<SuspiciousIpAttempt> detectSuspiciousLogEntries() {
+        Map<String, LogEntryContainer> logEntryContainerMap = createLogEntryContainerMap();
 
-        for (LogEntryContainer container : containers.values()) {
+        Map<String, List<LogEntry>> ipFailures = new HashMap<>();
+        for (LogEntryContainer container : logEntryContainerMap.values()) {
             for (LogEntry entry : container.getFailedLogins()) {
                 if (entry.getIpAddress() != null && entry.getTimestamp() != null) {
                     ipFailures.computeIfAbsent(entry.getIpAddress(), ip -> new ArrayList<>()).add(entry);
@@ -116,20 +134,25 @@ public class LogFileProcessorImpl implements LogFileProcessorService {
         }
 
         List<LogEntry> suspiciousEntries = new ArrayList<>();
-        for (List<LogEntry> logEntries : ipFailures.values()) {
-            logEntries.sort(Comparator.comparing(LogEntry::getTimestamp));
-            for (int i = 0; i <= logEntries.size() - 3; i++) {
-                OffsetDateTime first = logEntries.get(i).getTimestamp();
-                OffsetDateTime third = logEntries.get(i + 2).getTimestamp();
+        for (List<LogEntry> ipFailureLogEntries : ipFailures.values()) {
+            ipFailureLogEntries.sort(Comparator.comparing(LogEntry::getTimestamp));
+            for (int i = 0; i <= ipFailureLogEntries.size() - 3; i++) {
+                OffsetDateTime first = ipFailureLogEntries.get(i).getTimestamp();
+                OffsetDateTime third = ipFailureLogEntries.get(i + 2).getTimestamp();
                 if (Duration.between(first, third).toMinutes() <= 5) {
-                    suspiciousEntries.add(logEntries.get(i));
-                    suspiciousEntries.add(logEntries.get(i + 1));
-                    suspiciousEntries.add(logEntries.get(i + 2));
+                    suspiciousEntries.add(ipFailureLogEntries.get(i));
+                    suspiciousEntries.add(ipFailureLogEntries.get(i + 1));
+                    suspiciousEntries.add(ipFailureLogEntries.get(i + 2));
                     break;
                 }
             }
         }
-        return suspiciousEntries;
+
+        Map<String, List<LogEntry>> suspiciousIpMap = suspiciousEntries.stream()
+                .filter(entry -> entry.getIpAddress() != null)
+                .collect(Collectors.groupingBy(LogEntry::getIpAddress));
+
+        return LogEntryMapper.logEntryListToSuspiciousIpAttempts(suspiciousIpMap);
     }
 
     /**
