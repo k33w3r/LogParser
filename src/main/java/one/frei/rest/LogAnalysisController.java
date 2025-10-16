@@ -8,13 +8,11 @@ import one.frei.domain.model.dto.suspicious.AttemptInfo;
 import one.frei.domain.model.dto.suspicious.SuspiciousIpAttempts;
 import one.frei.domain.model.dto.upload.UserUploadSummary;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
@@ -52,7 +50,7 @@ public class LogAnalysisController {
     }
 
     @GetMapping("/top-file-uploads")
-    public List<UserUploadSummary> getTopUsersByFileUploads(@RequestParam(defaultValue = "3") int count) throws IOException {
+    public List<UserUploadSummary> getTopUsersByFileUploads(@RequestParam(defaultValue = "3") int count) {
         Map<String, LogEntryContainer> logEntryContainerMap = logFileProcessor.createLogEntryContainerMap(logEntries);
         List<LogEntryContainer> topUsers = logFileProcessor.getTopUsersByFileUploads(logEntryContainerMap, count);
 
@@ -63,7 +61,7 @@ public class LogAnalysisController {
     }
 
     @GetMapping("/suspicious")
-    public List<SuspiciousIpAttempts> getSuspiciousLogEntriesGrouped() throws IOException {
+    public List<SuspiciousIpAttempts> getSuspiciousLogEntriesGrouped() {
         Map<String, LogEntryContainer> logEntryContainerMap = logFileProcessor.createLogEntryContainerMap(logEntries);
 
         List<LogEntry> suspiciousRaw = logFileProcessor.detectSuspiciousLogEntries(logEntryContainerMap);

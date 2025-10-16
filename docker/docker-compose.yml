@@ -1,0 +1,6 @@
+services:
+  logparser:
+    image: docker.io/k33w3r/logparser:latest
+    container_name: logparser
+    ports:
+      - 8080:8080
