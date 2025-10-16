@@ -23,7 +23,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("api/logs")
+@RequestMapping("/api/logs")
 public class LogAnalysisController {
 
     private final LogFileProcessorService logFileProcessorService;
