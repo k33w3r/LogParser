@@ -1,12 +1,13 @@
 package one.frei.rest;
 
-import one.frei.processor.LogFileProcessor;
+import one.frei.impl.LogFileProcessorImpl;
 import one.frei.domain.model.LogEntry;
 import one.frei.domain.model.LogEntryContainer;
 import one.frei.domain.model.dto.login.UserLoginSummary;
 import one.frei.domain.model.dto.suspicious.AttemptInfo;
 import one.frei.domain.model.dto.suspicious.SuspiciousIpAttempts;
 import one.frei.domain.model.dto.upload.UserUploadSummary;
+import one.frei.service.LogFileProcessorService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -25,21 +26,21 @@ import java.util.stream.Collectors;
 @RequestMapping("api/logs")
 public class LogAnalysisController {
 
-    private final LogFileProcessor logFileProcessor;
+    private final LogFileProcessorService logFileProcessorService;
 
     private final List<LogEntry> logEntries;
 
     @Autowired
-    public LogAnalysisController(LogFileProcessor logFileProcessor) {
-        this.logFileProcessor = logFileProcessor;
+    public LogAnalysisController(LogFileProcessorImpl logFileProcessorService) {
+        this.logFileProcessorService = logFileProcessorService;
         InputStream logStream = getClass().getClassLoader().getResourceAsStream("system_logs.log");
-        logEntries = logFileProcessor.readLogFile(logStream);
+        logEntries = logFileProcessorService.readLogFile(logStream);
 
     }
 
     @GetMapping("/login-summary")
     public List<UserLoginSummary> getUserLoginSummary() {
-        Map<String, LogEntryContainer> logEntryContainerMap = logFileProcessor.createLogEntryContainerMap(logEntries);
+        Map<String, LogEntryContainer> logEntryContainerMap = logFileProcessorService.createLogEntryContainerMap(logEntries);
 
         return logEntryContainerMap.values().stream()
                 .map(container -> new UserLoginSummary(
@@ -54,7 +55,7 @@ public class LogAnalysisController {
 
     @GetMapping("/login-summary/download")
     public ResponseEntity<List<UserLoginSummary>> downloadUserLoginSummary() {
-        Map<String, LogEntryContainer> logEntryContainerMap = logFileProcessor.createLogEntryContainerMap(logEntries);
+        Map<String, LogEntryContainer> logEntryContainerMap = logFileProcessorService.createLogEntryContainerMap(logEntries);
         List<UserLoginSummary> result = logEntryContainerMap.values().stream()
                 .map(container -> new UserLoginSummary(
                         container.getUser(),
@@ -72,8 +73,8 @@ public class LogAnalysisController {
 
     @GetMapping("/top-file-uploads")
     public List<UserUploadSummary> getTopUsersByFileUploads(@RequestParam(defaultValue = "3") int count) {
-        Map<String, LogEntryContainer> logEntryContainerMap = logFileProcessor.createLogEntryContainerMap(logEntries);
-        List<LogEntryContainer> topUsers = logFileProcessor.getTopUsersByFileUploads(logEntryContainerMap, count);
+        Map<String, LogEntryContainer> logEntryContainerMap = logFileProcessorService.createLogEntryContainerMap(logEntries);
+        List<LogEntryContainer> topUsers = logFileProcessorService.getTopUsersByFileUploads(logEntryContainerMap, count);
 
         return topUsers.stream()
                 .map(container -> new UserUploadSummary(
@@ -83,8 +84,8 @@ public class LogAnalysisController {
 
     @GetMapping("/top-file-uploads/download")
     public ResponseEntity<List<UserUploadSummary>> downloadTopUsersByFileUploads(@RequestParam(defaultValue = "3") int count) {
-        Map<String, LogEntryContainer> logEntryContainerMap = logFileProcessor.createLogEntryContainerMap(logEntries);
-        List<LogEntryContainer> topUsers = logFileProcessor.getTopUsersByFileUploads(logEntryContainerMap, count);
+        Map<String, LogEntryContainer> logEntryContainerMap = logFileProcessorService.createLogEntryContainerMap(logEntries);
+        List<LogEntryContainer> topUsers = logFileProcessorService.getTopUsersByFileUploads(logEntryContainerMap, count);
 
         List<UserUploadSummary> result = topUsers.stream()
                 .map(container -> new UserUploadSummary(
@@ -99,9 +100,9 @@ public class LogAnalysisController {
 
     @GetMapping("/suspicious")
     public List<SuspiciousIpAttempts> getSuspiciousLogEntriesGrouped() {
-        Map<String, LogEntryContainer> logEntryContainerMap = logFileProcessor.createLogEntryContainerMap(logEntries);
+        Map<String, LogEntryContainer> logEntryContainerMap = logFileProcessorService.createLogEntryContainerMap(logEntries);
 
-        List<LogEntry> suspiciousRaw = logFileProcessor.detectSuspiciousLogEntries(logEntryContainerMap);
+        List<LogEntry> suspiciousRaw = logFileProcessorService.detectSuspiciousLogEntries(logEntryContainerMap);
 
         Map<String, List<LogEntry>> byIp = suspiciousRaw.stream()
                 .filter(entry -> entry.getIpAddress() != null)
@@ -122,8 +123,8 @@ public class LogAnalysisController {
 
     @GetMapping("/suspicious/download")
     public ResponseEntity<List<SuspiciousIpAttempts>> downloadSuspiciousLogEntriesGrouped() {
-        Map<String, LogEntryContainer> logEntryContainerMap = logFileProcessor.createLogEntryContainerMap(logEntries);
-        List<LogEntry> suspiciousRaw = logFileProcessor.detectSuspiciousLogEntries(logEntryContainerMap);
+        Map<String, LogEntryContainer> logEntryContainerMap = logFileProcessorService.createLogEntryContainerMap(logEntries);
+        List<LogEntry> suspiciousRaw = logFileProcessorService.detectSuspiciousLogEntries(logEntryContainerMap);
         Map<String, List<LogEntry>> byIp = suspiciousRaw.stream()
                 .filter(entry -> entry.getIpAddress() != null)
                 .collect(Collectors.groupingBy(LogEntry::getIpAddress));
