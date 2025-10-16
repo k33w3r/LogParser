@@ -1,5 +1,6 @@
 package one.frei.rest;
 
+import jakarta.validation.constraints.Min;
 import one.frei.domain.model.vo.login.UserLoginSummary;
 import one.frei.domain.model.vo.suspicious.SuspiciousIpAttempt;
 import one.frei.domain.model.vo.upload.UserUploadSummary;
@@ -9,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -43,8 +45,9 @@ public class LogAnalysisController {
                 .body(userLoginSummary);
     }
 
+    @Validated
     @GetMapping("/top-file-uploads")
-    public List<UserUploadSummary> getTopUsersByFileUploads(@RequestParam(defaultValue = "3") int count) {
+    public List<UserUploadSummary> getTopUsersByFileUploads(@RequestParam(defaultValue = "3") @Min(value = 1, message = "count must be greater than 0") int count) {
         return logFileProcessorService.retrieveTopUsersByFileUploads(count);
     }
 
