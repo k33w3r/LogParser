@@ -15,7 +15,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class LogEntryMapperTest {
 
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
-
     private static final String TIMESTAMP = "2025-10-14T20:52:00+02:00";
 
 

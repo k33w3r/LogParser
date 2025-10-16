@@ -1,4 +1,4 @@
-package one.frei.domain.model.dto.upload;
+package one.frei.domain.model.vo.upload;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -14,9 +14,4 @@ public class UserUploadSummary {
     private int fileUploadCount;
     private List<LogEntry> fileUploads;
 
-    public UserUploadSummary(String username, List<LogEntry> fileUploads) {
-        this.username = username;
-        this.fileUploadCount = fileUploads.size();
-        this.fileUploads = fileUploads;
-    }
 }
